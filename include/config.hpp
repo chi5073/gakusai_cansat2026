@@ -24,4 +24,8 @@ namespace Config {
     const int localPort = 4210;      // 通信ポート番号
     const char* host_name = "sbus-wifi"; // ホスト名
 
+    //S.BUSの受信に使うSerial1の設定。
+    const int RX_PIN = 5; // S.BUSの受信
+    const int TX_PIN = 23; // S.BUSの送信(浮かせとく)
+
 }
