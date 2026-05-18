@@ -1,0 +1,31 @@
+#include "rober_controll.hpp"
+
+RoverController::RoverController(float steering_gain, float throttle_gain, MotorDriver* motor_right, MotorDriver* motor_left){
+    this->_steering_gain = steering_gain;
+    this->_throttle_gain = throttle_gain;
+    this->motor_right = motor_right;
+    this->motor_left = motor_left;
+    this->motor_right->command(0); 
+    this->motor_left->command(0); 
+}
+
+void RoverController::setup(){
+}
+
+void RoverController::command(int16_t yaw, int16_t throttle){
+    // throttle: -100(フルバック) 〜 100(フルスロットル) に変更されている前提
+    // yaw: -100(左旋回) 〜 100(右旋回)
+
+    // 差動二輪（Differential Drive）の計算
+    float right_target = (this->_throttle_gain * throttle) + (this->_steering_gain * yaw);
+    float left_target  = (this->_throttle_gain * throttle) - (this->_steering_gain * yaw);
+
+    // 計算結果を -255 〜 255 のPWM出力範囲にスケール
+    // ゲインによって100を超える場合があるため、constrainで制限する
+    int16_t right_pwm = constrain(map(right_target, -100, 100, -255, 255), -255, 255);
+    int16_t left_pwm  = constrain(map(left_target, -100, 100, -255, 255), -255, 255);
+
+    // MotorDriver側は、負の値なら逆転、正の値なら正転として処理するように改修が必要です
+    motor_right->command(right_pwm);
+    motor_left->command(left_pwm);
+}

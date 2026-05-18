@@ -2,47 +2,45 @@
 #include "config.hpp"
 #include "motor_driver.hpp"
 #include "WiFiSbusReceiver.hpp"
-#include "rober_controll.hpp"
+#include "rover_controll.hpp"
 #include "SBUS.hpp"
 
-MotorDriver* motor_right = nullptr;
-MotorDriver* motor_left = nullptr;
-WiFiSbusReceiver* receiver = nullptr;
-RoberController* controller = nullptr;
-SBUSReceiver* sbusReceiver = nullptr;
+// グローバル空間での静的確保に変更
+MotorDriver motor_right(Config::m_right_pin1, Config::m_right_pin2, Config::pwmChannelRight, Config::pwmFreq, Config::pwmResolution);
+MotorDriver motor_left(Config::m_left_pin1, Config::m_left_pin2, Config::pwmChannelLeft, Config::pwmFreq, Config::pwmResolution);
+WiFiSbusReceiver receiver(Config::ssid, Config::password, Config::host_name);
+RoverController controller(Config::steering_gain, Config::throttle_gain, &motor_right, &motor_left);
+SBUSReceiver sbusReceiver(Serial2);
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
-  receiver = new WiFiSbusReceiver(Config::ssid, Config::password, Config::host_name);
-  receiver->begin();
-  sbusReceiver = new SBUSReceiver(Serial2);
-  sbusReceiver->begin(Config::RX_PIN, Config::TX_PIN);
-  motor_right = new MotorDriver(Config::m_right_pin1, Config::m_right_pin2, Config::pwmChannelRight, Config::pwmFreq, Config::pwmResolution);
-  motor_left = new MotorDriver(Config::m_left_pin1, Config::m_left_pin2, Config::pwmChannelLeft, Config::pwmFreq, Config::pwmResolution);
-  controller = new RoberController(Config::steering_gain, Config::throttle_gain, motor_right, motor_left);
-  motor_right->command(0); 
-  motor_left->command(0); 
+  
+  receiver.begin();
+  sbusReceiver.begin(Config::RX_PIN, Config::TX_PIN);
+  
+  motor_right.command(0); 
+  motor_left.command(0); 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // データ受信とフェイルセーフ監視を実行
-  receiver->update();
-  sbusReceiver->update();
-  if (!sbusReceiver->isFailsafe()){
-    uint16_t throttle = map(sbusReceiver->getThrottle(), 0, 2047, 0, 100);
-    int16_t yaw      = map(sbusReceiver->getRudder(), 0, 2047, -100, 100);
+  receiver.update();
+  sbusReceiver.update();
 
-    // コマンドをローバーコントローラーに送信
-    controller->command(yaw, throttle);
-    delay(20); // 50Hz程度のループを維持
-  }else{
-    // フェイルセーフ状態の場合はモーターを停止
-    motor_right->stop();
-    motor_left->stop();
+  // 両方の通信手段のフェイルセーフを考慮する
+  bool is_sbus_safe = !sbusReceiver.isFailsafe();
+  // bool is_wifi_safe = !receiver.isFailsafe(); // WiFi側にもFailsafe実装を推奨
+
+  if (is_sbus_safe) { 
+    // throttleを -100 〜 100 にマッピングし、後退を可能にする
+    int16_t throttle = map(sbusReceiver.getThrottle(), 0, 2047, -100, 100);
+    int16_t yaw      = map(sbusReceiver.getRudder(), 0, 2047, -100, 100);
+
+    controller.command(yaw, throttle);
+    delay(20); 
+  } else {
+    // フェイルセーフ時の確実な停止
+    motor_right.stop();
+    motor_left.stop();
     delay(100); 
   }
-
-  
 }
