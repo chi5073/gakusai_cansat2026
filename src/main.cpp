@@ -14,8 +14,7 @@ SBUSReceiver sbusReceiver(Serial2);
 
 void setup() {
   Serial.begin(115200);
-  
-  receiver.begin();
+  //receiver.begin();
   sbusReceiver.begin(Config::RX_PIN, Config::TX_PIN);
   
   motor_right.command(0); 
@@ -23,18 +22,19 @@ void setup() {
 }
 
 void loop() {
-  receiver.update();
+  //receiver.update();
   sbusReceiver.update();
 
   // 両方の通信手段のフェイルセーフを考慮する
   bool is_sbus_safe = !sbusReceiver.isFailsafe();
-  // bool is_wifi_safe = !receiver.isFailsafe(); // WiFi側にもFailsafe実装を推奨
-
+  //bool is_wifi_safe = !receiver.isFailsafe(); // WiFi側にもFailsafe実装を推奨
   if (is_sbus_safe) { 
-    // throttleを -100 〜 100 にマッピングし、後退を可能にする
-    int16_t throttle = map(sbusReceiver.getThrottle(), 0, 2047, -100, 100);
-    int16_t yaw      = map(sbusReceiver.getRudder(), 0, 2047, -100, 100);
-
+    // throttleを -100 〜 100 の範囲にマッピング
+    //int16_t throttle = map(receiver.getChannel(0), 0, 2047, -100, 100);
+    //int16_t yaw      = map(receiver.getChannel(1), 0, 2047, -100, 100);
+    int16_t throttle = sbusReceiver.getElevator(); // -100〜100のスロットル値
+    int16_t yaw      = sbusReceiver.getRudder();  // -100〜100の旋回値
+    //  Serial.printf("Throttle: %d, Yaw: %d\n", throttle, yaw); // デバッグ用に値を表示
     controller.command(yaw, throttle);
     delay(20); 
   } else {

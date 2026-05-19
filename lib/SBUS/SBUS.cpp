@@ -27,7 +27,7 @@ void SBUSReceiver::readSticks() {
     // 内部の _stickData 配列に直接書き込む
     _stickData[0] = ((_channelData[2] - 368) * 100) / 1312;      // スロットル
     _stickData[1] = ((_channelData[0] - 1024) * 200) / 1312;     // 横転舵(エルロン)
-    _stickData[2] = ((_channelData[1] - 1024) * 200) / -1312;    // 昇降舵(エレベーター)
+    _stickData[2] = ((_channelData[1] - 1023) * 200) / -1312;    // 昇降舵(エレベーター)
     _stickData[3] = ((_channelData[3] - 1024) * 200) / 1312;     // 方向舵(ラダー)
 }
 

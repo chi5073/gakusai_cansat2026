@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include "motor_driver.hpp"
+#include <cmath>
 
 class RoverController { // 名前をRoverに変更
     public:

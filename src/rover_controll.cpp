@@ -1,4 +1,4 @@
-#include "rober_controll.hpp"
+#include "rover_controll.hpp"
 
 RoverController::RoverController(float steering_gain, float throttle_gain, MotorDriver* motor_right, MotorDriver* motor_left){
     this->_steering_gain = steering_gain;
@@ -21,11 +21,13 @@ void RoverController::command(int16_t yaw, int16_t throttle){
     float left_target  = (this->_throttle_gain * throttle) - (this->_steering_gain * yaw);
 
     // 計算結果を -255 〜 255 のPWM出力範囲にスケール
-    // ゲインによって100を超える場合があるため、constrainで制限する
-    int16_t right_pwm = constrain(map(right_target, -100, 100, -255, 255), -255, 255);
-    int16_t left_pwm  = constrain(map(left_target, -100, 100, -255, 255), -255, 255);
 
-    // MotorDriver側は、負の値なら逆転、正の値なら正転として処理するように改修が必要です
+    // ゲインによって100を超える場合があるため、constrainで制限する
+    int16_t right_pwm = constrain(map(right_target, -300, 300, -255, 255), 0, 255);
+    int16_t left_pwm  = constrain(map(left_target, -300, 300, -255, 255), 0, 255);
+
+    Serial.printf("targetRight, targetLeft: %.2f, %.2f, rightPwm: %d, leftPwm: %d, throttle: %d, yaw: %d\n", right_target, left_target, right_pwm, left_pwm, throttle, yaw); // デバッグ用に生のターゲット値を表示
+
     motor_right->command(right_pwm);
     motor_left->command(left_pwm);
 }
